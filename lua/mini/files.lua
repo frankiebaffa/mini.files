@@ -601,6 +601,15 @@ MiniFiles.config = {
     permanent_delete = true,
     -- Whether to use for editing directories
     use_as_default_explorer = true,
+    -- Devicon options
+    devicons = {
+      -- Whether to check for devicons plugin and use if exists
+      use_devicons = true,
+      -- The text-based fallback "icon" for files
+      file_fallback = '[f] ',
+      -- The text-based fallback "icon" for directories
+      directory_fallback = '[d] ',
+    }
   },
 
   -- Customization of explorer windows
@@ -936,12 +945,21 @@ MiniFiles.default_filter = function(fs_entry) return true end
 ---@return ... Icon and highlight group name. For more details, see |MiniFiles.config|
 ---   and |MiniFiles-examples|.
 MiniFiles.default_prefix = function(fs_entry)
-  if fs_entry.fs_type == 'directory' then return ' ', 'MiniFilesDirectory' end
-  local has_devicons, devicons = pcall(require, 'nvim-web-devicons')
-  if not has_devicons then return ' ', 'MiniFilesFile' end
-
-  local icon, hl = devicons.get_icon(fs_entry.name, nil, { default = false })
-  return (icon or '') .. ' ', hl or 'MiniFilesFile'
+  if MiniFiles.config.options.devicons.use_devicons then
+    local has_devicons, devicons = pcall(require, 'nvim-web-devicons')
+    if has_devicons then
+      if fs_entry.fs_type == 'directory' then
+        local dir_icon, hl = devicons.get_icon(fs_entry.name, nil, { default = false })
+        return (dir_icon or ' '), 'MiniFilesDirectory'
+      end
+      local file_icon, hl = devicons.get_icon(fs_entry.name, nil, { default = false })
+      return (file_icon or '') .. ' ', hl or 'MiniFilesFile'
+    end
+  end
+  if fs_entry.fs_type == 'directory' then
+    return MiniFiles.config.options.devicons.directory_fallback, 'MiniFilesDirectory'
+  end
+  return MiniFiles.config.options.devicons.file_fallback
 end
 
 --- Default sort of file system entries
@@ -1044,12 +1062,19 @@ H.setup_config = function(config)
 
     ['options.use_as_default_explorer'] = { config.options.use_as_default_explorer, 'boolean' },
     ['options.permanent_delete'] = { config.options.permanent_delete, 'boolean' },
+    ['options.devicons'] = { config.options.devicons, 'table' },
 
     ['windows.max_number'] = { config.windows.max_number, 'number' },
     ['windows.preview'] = { config.windows.preview, 'boolean' },
     ['windows.width_focus'] = { config.windows.width_focus, 'number' },
     ['windows.width_nofocus'] = { config.windows.width_nofocus, 'number' },
     ['windows.width_preview'] = { config.windows.width_preview, 'number' },
+  })
+
+  vim.validate({
+    ['options.devicons.use_devicons'] = { config.options.devicons.use_devicons, 'boolean' },
+    ['options.devicons.file_fallback'] = { config.options.devicons.file_fallback, 'string' },
+    ['options.devicons.directory_fallback'] = { config.options.devicons.directory_fallback, 'string' },
   })
 
   return config
