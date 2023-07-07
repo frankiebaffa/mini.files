@@ -230,6 +230,15 @@ Here are code snippets for some common installation methods (use only one):
     permanent_delete = true,
     -- Whether to use for editing directories
     use_as_default_explorer = true,
+    -- Devicon options
+    devicons = {
+        -- Whether to check for devicons plugin and use if it exists
+        use_devicons = true,
+        -- The text-based fallabck "icon" for files
+        file_fallback = '[f] ',
+        -- The text-based fallback "icon" for directories
+        directory_fallback = '[d] ',
+    },
   },
 
   -- Customization of explorer windows
