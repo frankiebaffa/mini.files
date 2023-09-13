@@ -351,6 +351,14 @@
 
 --- Common configuration examples ~
 ---
+--- # Toggle explorer ~
+---
+--- Use a combination of |MiniFiles.open()| and |MiniFiles.close()|: >
+---
+---   local minifiles_toggle = function(...)
+---     if not MiniFiles.close() then MiniFiles.open(...) end
+---   end
+---
 --- # Customize windows ~
 ---
 --- Create an autocommand for `MiniFilesWindowOpen` event: >
@@ -1970,8 +1978,9 @@ H.buffer_update_file = function(buf_id, path, opts)
   -- Add highlighting on Neovim>=0.8 which has stabilized API
   if vim.fn.has('nvim-0.8') == 1 then
     local ft = vim.filetype.match({ buf = buf_id, filename = path })
-    local ok, _ = pcall(vim.treesitter.start, buf_id, ft)
-    if not ok then vim.bo[buf_id].syntax = ft end
+    local has_lang, lang = pcall(vim.treesitter.language.get_lang, ft)
+    local has_ts, _ = pcall(vim.treesitter.start, buf_id, has_lang and lang or ft)
+    if not has_ts then vim.bo[buf_id].syntax = ft end
   end
 
   return {}
