@@ -45,7 +45,7 @@ Notes:
     - In case of missing file, check its or its parent read permissions.
     - In case of no manipulation result, check write permissions.
 
-# Dependencies~
+# Dependencies ~
 
 Suggested dependencies (provide extra functionality, will work without them):
 - Plugin 'nvim-tree/nvim-web-devicons' for filetype icons near the entry
@@ -87,6 +87,7 @@ more details.
 
 * `MiniFilesBorder` - border of regular windows.
 * `MiniFilesBorderModified` - border of windows showing modified buffer.
+* `MiniFilesCursorLine` - cursor line in explorer windows.
 * `MiniFilesDirectory` - text and icon representing directory.
 * `MiniFilesFile` - text representing file.
 * `MiniFilesNormal` - basic foreground/background highlighting.
@@ -159,6 +160,8 @@ Available built-in actions (see "Details" for more information): >
  |-------------|------|------------------------------------------------|
  | Reset       | <BS> | Reset current explorer                         |
  |-------------|------|------------------------------------------------|
+ | Reveal cwd  |  @   | Reset current current working directory        |
+ |-------------|------|------------------------------------------------|
  | Show help   |  g?  | Show help window                               |
  |-------------|------|------------------------------------------------|
  | Synchronize |  =   | Synchronize user edits and/or external changes |
@@ -181,6 +184,9 @@ Details:
 
 - "Reset" focuses only on "anchor" directory (the one used to open current
   explorer) and resets all stored directory cursor positions.
+
+- "Reveal cwd" extends branch to include |current-directory|.
+  If it is not an ancestor of the current branch, nothing is done.
 
 - "Show help" results into new window with helpful information about current
   explorer. Press `q` to close it.
@@ -351,6 +357,14 @@ Callback for each file action event will receive `data` field
                                                             *MiniFiles-examples*
 Common configuration examples ~
 
+# Toggle explorer ~
+
+Use a combination of |MiniFiles.open()| and |MiniFiles.close()|: >
+
+  local minifiles_toggle = function(...)
+    if not MiniFiles.close() then MiniFiles.open(...) end
+  end
+
 # Customize windows ~
 
 Create an autocommand for `MiniFilesWindowOpen` event: >
@@ -466,10 +480,10 @@ Use |MiniFiles.get_fs_entry()| together with |vim.fs.dirname()|: >
                           `MiniFiles.setup`({config})
 Module setup
 
-Parameters~
+Parameters ~
 {config} `(table|nil)` Module config table. See |MiniFiles.config|.
 
-Usage~
+Usage ~
 `require('mini.files').setup({})` (replace `{}` with your `config` table).
 
 ------------------------------------------------------------------------------
@@ -499,6 +513,7 @@ Default values:
       go_out      = 'h',
       go_out_plus = 'H',
       reset       = '<BS>',
+      reveal_cwd  = '@',
       show_help   = 'g?',
       synchronize = '=',
       trim_left   = '<',
@@ -550,7 +565,7 @@ Uses |MiniFiles.default_prefix()| by default.
 
 `content.sort` describes in which order directory entries should be shown
 in directory buffer. Takes as input and returns as output an array of file
-system entry data. Note: techincally, it can be used to filter and modify
+system entry data. Note: technically, it can be used to filter and modify
 its elements as well.
 Uses |MiniFiles.default_sort()| by default.
 
@@ -597,7 +612,9 @@ simultaneously. For example, use value 1 to always show single window.
 There is no constraint by default.
 
 `windows.preview` is a boolean indicating whether to show preview of
-file/directory under cursor.
+file/directory under cursor. Note: it is shown with highlighting if Neovim
+version is sufficient and file is small enough (less than 1K bytes per line
+or 1M bytes in total).
 
 `windows.width_focus` and `windows.width_nofocus` are number of columns used
 as `width` for focused and non-focused windows respectively.
@@ -622,7 +639,7 @@ Common ways to use this function:
 - `MiniFiles.open(MiniFiles.get_latest_path())` - open last used `path`
   (per tabpage). Current working directory for the first time.
 
-Parameters~
+Parameters ~
 {path} `(string|nil)` A valid file system path used as anchor.
   If it is a path to directory, used directly.
   If it is a path to file, its parent directory is used as anchor while
@@ -642,7 +659,7 @@ Notes:
 - If in `opts` at least one of `content` entry is not `nil`, all directory
   buffers are forced to update.
 
-Parameters~
+Parameters ~
 {opts} `(table|nil)` Table of options to update.
 
 ------------------------------------------------------------------------------
@@ -669,7 +686,7 @@ Reset explorer
                               `MiniFiles.close`()
 Close explorer
 
-Return~
+Return ~
 `(boolean|nil)` Whether closing was done or `nil` if there was nothing to close.
 
 ------------------------------------------------------------------------------
@@ -706,6 +723,14 @@ Trim right part of branch
   results into current window becoming the most right one.
 
 ------------------------------------------------------------------------------
+                                                        *MiniFiles.reveal_cwd()*
+                            `MiniFiles.reveal_cwd`()
+Reveal current working directory
+
+- Prepend branch with parent paths until current working directory is reached.
+  Do nothing if not inside it.
+
+------------------------------------------------------------------------------
                                                          *MiniFiles.show_help()*
                             `MiniFiles.show_help`()
 Show help window
@@ -718,13 +743,13 @@ Show help window
                    `MiniFiles.get_fs_entry`({buf_id}, {line})
 Get file system entry data
 
-Parameters~
+Parameters ~
 {buf_id} `(number|nil)` Buffer identifier of valid directory buffer.
   Default: current buffer.
 {line} `(number|nil)` Line number of entry for which to return information.
   Default: cursor line.
 
-Return~
+Return ~
 `(table|nil)` Table of file system entry data with the following fields:
   - <fs_type> `(string)` - one of "file" or "directory".
   - <name> `(string)` - basename of an entry (including extension).
@@ -737,7 +762,7 @@ Returns `nil` if there is no proper file system entry path at the line.
                         `MiniFiles.get_target_window`()
 Get target window
 
-Return~
+Return ~
 `(number|nil)` Window identifier inside which file will be opened or
   `nil` if no explorer is opened.
 
@@ -746,7 +771,7 @@ Return~
                     `MiniFiles.set_target_window`({win_id})
 Set target window
 
-Parameters~
+Parameters ~
 {win_id} `(number)` Window identifier inside which file will be opened.
 
 ------------------------------------------------------------------------------
@@ -764,13 +789,13 @@ Default filter of file system entries
 
 Currently does not filter anything out.
 
-Parameters~
+Parameters ~
 {fs_entry} `(table)` Table with the following fields:
   - <fs_type> `(string)` - one of "file" or "directory".
   - <name> `(string)` - basename of an entry (including extension).
   - <path> `(string)` - full path of an entry.
 
-Return~
+Return ~
 `(boolean)` Always `true`.
 
 ------------------------------------------------------------------------------
@@ -782,13 +807,13 @@ Default prefix of file system entries
 - For file try to use `get_icon()` from 'nvim-tree/nvim-web-devicons'.
   If missing, return fixed icon and 'MiniFilesFile' highlight group.
 
-Parameters~
+Parameters ~
 {fs_entry} `(table)` Table with the following fields:
   - <fs_type> `(string)` - one of "file" or "directory".
   - <name> `(string)` - basename of an entry (including extension).
   - <path> `(string)` - full path of an entry.
 
-Return~
+Return ~
 `(...)` Icon and highlight group name. For more details, see |MiniFiles.config|
   and |MiniFiles-examples|.
 
@@ -800,14 +825,14 @@ Default sort of file system entries
 Sort directories and files separately (alphabetically ignoring case) and
 put directories first.
 
-Parameters~
+Parameters ~
 {fs_entries} `(table)` Array of file system entry data.
   Each one is a table with the following fields:
   - <fs_type> `(string)` - one of "file" or "directory".
   - <name> `(string)` - basename of an entry (including extension).
   - <path> `(string)` - full path of an entry.
 
-Return~
+Return ~
 `(table)` Sorted array of file system entries.
 
 
